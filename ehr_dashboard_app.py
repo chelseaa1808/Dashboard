@@ -39,7 +39,7 @@ else:
 
     # 1. Correlation Heatmap
     st.markdown("### 🔥 Correlation Heatmap")
-    cols_to_include = ["pct_hospital_cehrt", "pct_hospitals_cehrt_2015"]
+    cols_to_include = ["pct_hospitals_cehrt", "pct_hospitals_cehrt_2015"]
     corr_data = df[cols_to_include].dropna()
     if not corr_data.empty:
         corr = corr_data.corr()
@@ -52,18 +52,18 @@ else:
 
     # 2. Choropleth Map by State
     st.markdown("### 🗺️ CEHRT Adoption by Region (State-Level Choropleth)")
-    if "region_code" in df.columns and "pct_hospital_cehrt" in df.columns:
-        map_df = df.groupby("region_code")["pct_hospital_cehrt"].mean().reset_index()
+    if "region_code" in df.columns and "pct_hospitals_cehrt" in df.columns:
+        map_df = df.groupby("region_code")["pct_hospitals_cehrt"].mean().reset_index()
         map_df["region_code"] = map_df["region_code"].str.upper()
 
         fig = px.choropleth(
             map_df,
             locations="region_code",
             locationmode="USA-states",
-            color="pct_hospital_cehrt",
+            color="pct_hospitals_cehrt",
             scope="usa",
             color_continuous_scale="Plasma",
-            labels={"pct_hospital_cehrt": "% CEHRT Adoption"}
+            labels={"pct_hospitals_cehrt": "% CEHRT Adoption"}
         )
         st.plotly_chart(fig)
     else:

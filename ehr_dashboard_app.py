@@ -2,47 +2,69 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
 
 # Load data
 @st.cache_data
 def load_data():
-    url = "https://raw.githubusercontent.com/chelseaa1808/EHR-Adoption-DataSet-Analysis/main/aha__3_.csv"
     try:
-        return pd.read_csv(url)
+        df = pd.read_csv("aha__3_.csv")
+        return df
     except Exception as e:
-        st.error("Failed to load data. Make sure the file is available at the provided GitHub URL.")
+        st.error("Failed to load 'aha__3_.csv'. Ensure the file is available in your working directory.")
         return pd.DataFrame()
 
 df = load_data()
 
-st.title("📊 EHR Adoption Analysis Dashboard")
+st.title("📊 EHR Adoption: Advanced Dashboard (AHA Dataset)")
 
 if df.empty:
-    st.warning("Data not available.")
+    st.warning("No data loaded.")
 else:
-    # Sidebar filters
+    st.markdown("This dashboard provides insights into EHR adoption across U.S. regions using the AHA dataset.")
+
+    # Filters (Optional)
+    region_col = "region_code"
+    year_col = "year" if "year" in df.columns else None
+
     st.sidebar.header("Filter Data")
-    year_col = [col for col in df.columns if "year" in col.lower()]
-    state_col = [col for col in df.columns if "state" in col.lower()]
+    if year_col:
+        selected_year = st.sidebar.selectbox("Select Year", sorted(df[year_col].dropna().unique()))
+        df = df[df[year_col] == selected_year]
 
-    selected_year = st.sidebar.selectbox("Year", df[year_col[0]].dropna().unique()) if year_col else None
-    selected_state = st.sidebar.selectbox("State", df[state_col[0]].dropna().unique()) if state_col else None
+    # Overview
+    st.subheader("Sample Data")
+    st.dataframe(df.head(10))
 
-    # Filtered data
-    filtered_df = df.copy()
-    if selected_year:
-        filtered_df = filtered_df[filtered_df[year_col[0]] == selected_year]
-    if selected_state:
-        filtered_df = filtered_df[filtered_df[state_col[0]] == selected_state]
-
-    st.subheader("EHR Metrics Overview")
-    st.dataframe(filtered_df.head(10))
-
-    # Sample visualization
-    metric_cols = [col for col in filtered_df.columns if filtered_df[col].dtype in ['int64', 'float64']]
-    if metric_cols:
-        metric = st.selectbox("Select a metric to visualize", metric_cols)
+    # 1. Correlation Heatmap
+    st.markdown("### 🔥 Correlation Heatmap")
+    cols_to_include = ["pct_hospital_cehrt", "pct_hospitals_cehrt_2015"]
+    corr_data = df[cols_to_include].dropna()
+    if not corr_data.empty:
+        corr = corr_data.corr()
         fig, ax = plt.subplots()
-        filtered_df[metric].hist(bins=20, ax=ax)
-        ax.set_title(f"Distribution of {metric}")
+        sns.heatmap(corr, annot=True, cmap="coolwarm", ax=ax)
+        ax.set_title("Correlation between CEHRT Metrics")
         st.pyplot(fig)
+    else:
+        st.info("Insufficient data for correlation heatmap.")
+
+    # 2. Choropleth Map by State
+    st.markdown("### 🗺️ CEHRT Adoption by Region (State-Level Choropleth)")
+    if "region_code" in df.columns and "pct_hospital_cehrt" in df.columns:
+        map_df = df.groupby("region_code")["pct_hospital_cehrt"].mean().reset_index()
+        map_df["region_code"] = map_df["region_code"].str.upper()
+
+        fig = px.choropleth(
+            map_df,
+            locations="region_code",
+            locationmode="USA-states",
+            color="pct_hospital_cehrt",
+            scope="usa",
+            color_continuous_scale="Plasma",
+            labels={"pct_hospital_cehrt": "% CEHRT Adoption"}
+        )
+        st.plotly_chart(fig)
+    else:
+        st.info("Required columns not available for choropleth map.")

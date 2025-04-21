@@ -17,7 +17,7 @@ def load_data():
 
 df = load_data()
 
-st.title("📊 EHR Adoption: Advanced Dashboard (AHA Dataset)")
+st.title("📊 EHR Adoption: Dashboard (AHA Dataset)")
 
 if df.empty:
     st.warning("No data loaded.")
